@@ -145,6 +145,18 @@ app_license = "MIT"
 # 	],
 # }
 
+
+# hooks.py
+
+scheduler_events = {
+    "cron": {
+        "*/2 * * * *": [  # Runs the job every 3 minutes
+            "room_status.change_room_status.change_room_status_from_booked_to_open"
+        ]
+    },
+}
+
+
 # Testing
 # -------
 
