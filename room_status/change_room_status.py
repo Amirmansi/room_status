@@ -1,13 +1,12 @@
 import frappe
-from frappe.utils import nowdate, now_datetime
+from frappe.utils import nowdate
 
 @frappe.whitelist(allow_guest=True)
 def change_room_status_based_on_date_range():
-    # Get today's date and time
+    # Get today's date
     current_date = nowdate()
-    current_datetime = now_datetime()
     
-    invoices_er = []
+    updated_invoices = []
     
     # Fetch sales invoices with the required fields
     sales_invoices = frappe.db.get_all("Sales Invoice",
@@ -22,32 +21,27 @@ def change_room_status_based_on_date_range():
         posting_date = invoice.get("posting_date")
         end_date = invoice.get("custom_end_dates")
         
+        # Ensure both posting date and end date are present
         if posting_date and end_date:
-            # Check if the current date is within the date range
-            if posting_date <= current_date <= end_date:
-                # Fetch the Project DocType record
-                property_name = invoice["custom_selected_project"]
-                if property_name:
-                    property_doc = frappe.get_doc("Project", property_name)
-                    
+            project_name = invoice["custom_selected_project"]
+            if project_name:
+                project_doc = frappe.get_doc("Project", project_name)
+                
+                # Check if the current date is within the date range
+                if posting_date <= current_date <= end_date:
                     # Update status to "Booked" if within the date range
-                    if property_doc.custom_room_status != "Booked":
-                        property_doc.custom_room_status = "Booked"
-                        property_doc.flags.ignore_permissions = True
-                        property_doc.save()
-                        frappe.db.commit()
-                        invoices_er.append(invoice)
-            else:
-                # Update status to "Open" if outside the date range
-                property_name = invoice["custom_selected_project"]
-                if property_name:
-                    property_doc = frappe.get_doc("Project", property_name)
-                    
-                    if property_doc.custom_room_status != "Open":
-                        property_doc.custom_room_status = "Open"
-                        property_doc.flags.ignore_permissions = True
-                        property_doc.save()
-                        frappe.db.commit()
-                        invoices_er.append(invoice)
-
-    return invoices_er
+                    if project_doc.custom_room_status != "Booked":
+                        project_doc.custom_room_status = "Booked"
+                        project_doc.flags.ignore_permissions = True
+                        project_doc.save()
+                        updated_invoices.append(invoice)
+                else:
+                    # Update status to "Open" if outside the date range
+                    if project_doc.custom_room_status != "Open":
+                        project_doc.custom_room_status = "Open"
+                        project_doc.flags.ignore_permissions = True
+                        project_doc.save()
+                        updated_invoices.append(invoice)
+    
+    # Return the list of updated invoices
+    return updated_invoices
